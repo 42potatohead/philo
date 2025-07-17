@@ -1,0 +1,64 @@
+#include "philo.h"
+
+int is_dead(t_philo *philo)
+{
+	if (time_since(&philo->t_last_meal) > philo->global->ttd)
+	{
+		printf("%ld %d is dead\n", time_since(&philo->global->t_start), philo->id);
+		return 1; // Philosopher is dead
+	}
+	return 0; // Philosopher is alive
+}
+
+void simulate(t_philo *philos)
+{
+	init_threads(philos, philos[0].global->nb_philo);
+
+	while(1)
+	{
+		pthread_mutex_lock(&philos[0].global->sim_state_mtx);
+		if (philos[0].global->sim_state == STOPPED)
+		{
+			pthread_mutex_unlock(&philos[0].global->sim_state_mtx);
+			break; // Exit the loop if simulation is stopped
+		}
+		pthread_mutex_unlock(&philos[0].global->sim_state_mtx);
+		if (is_dead(philos))
+		{
+			pthread_mutex_lock(&philos[0].global->sim_state_mtx);
+			philos[0].global->sim_state = STOPPED;
+			pthread_mutex_unlock(&philos[0].global->sim_state_mtx);
+			break; // Exit the loop if a philosopher is dead
+		}
+		// usleep(100); // Prevent busy waiting
+	}
+	clean_exit(philos, EXIT_SUCCESS, NULL);
+}
+
+int main(int ac, char **argv)
+{
+	t_philo *philos;
+	t_global *global;
+
+	// Allocate and initialize global data first
+	global = malloc(sizeof(t_global));
+	if (!global)
+		return (EXIT_FAILURE);
+	init_var(global);
+	if (check_args(global, ac, argv))
+		return (EXIT_FAILURE);
+
+	// Now allocate array of philosophers
+	init_philos(&philos, global);
+	init_mtx(philos);
+	simulate(philos);
+	// pthread_join(, NULL);
+	printf(" Philos: %d\n Time to Die: %d\n Time to Eat: %d\n Time to Sleep: %d\n", global->nb_philo, global->ttd, global->tte, global->tts);
+	// if (ac == 6)
+	// printf(" Meals to Eat %d\n", global.must_eat);
+}
+
+// gettimeofday(&global.t_start, NULL);
+// usleep(50000 * 1000);
+// gettimeofday(&global.t_end, NULL);
+// printf("slept for %ld ms\n",((((global.t_end.tv_sec * 1000000) + global.t_end.tv_usec) - ((global.t_start.tv_sec * 1000000) + global.t_start.tv_usec)) ) / 1000 );
