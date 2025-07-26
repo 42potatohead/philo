@@ -2,10 +2,22 @@
 
 int is_dead(t_philo *philo)
 {
+	pthread_mutex_lock(&philo->global->last_meal);
+	pthread_mutex_lock(&philo->global->sim_state_mtx);
 	if (time_since(&philo->t_last_meal) > philo->global->ttd)
 	{
+		pthread_mutex_unlock(&philo->global->last_meal);
+		pthread_mutex_unlock(&philo->global->sim_state_mtx);
+		pthread_mutex_lock(&philo->global->print_mutex);
 		printf("%ld %d is dead\n", time_since(&philo->global->t_start), philo->id);
+		pthread_mutex_unlock(&philo->global->print_mutex);
 		return 1; // Philosopher is dead
+	}
+	pthread_mutex_unlock(&philo->global->last_meal);
+	pthread_mutex_unlock(&philo->global->sim_state_mtx);
+	if (philo->nb_meals == philo->global->must_eat)
+	{
+		return 1;
 	}
 	return 0; // Philosopher is alive
 }
@@ -30,7 +42,7 @@ void simulate(t_philo *philos)
 			pthread_mutex_unlock(&philos[0].global->sim_state_mtx);
 			break; // Exit the loop if a philosopher is dead
 		}
-		// usleep(100); // Prevent busy waiting
+		usleep(1000); // Prevent busy waiting
 	}
 	clean_exit(philos, EXIT_SUCCESS, NULL);
 }

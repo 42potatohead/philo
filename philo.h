@@ -28,8 +28,10 @@ typedef struct s_global
 	unsigned int ttd;
 	unsigned int tte;
 	unsigned int tts;
-	int must_eat;
+	_Atomic int must_eat;
 	struct timeval t_start;
+	pthread_mutex_t print_mutex;
+	pthread_mutex_t last_meal;
 	pthread_mutex_t sim_state_mtx;
 	e_simulation_state sim_state;
 } t_global;
@@ -37,9 +39,9 @@ typedef struct s_global
 typedef struct s_philo
 {
 	int id;
-	unsigned int philo_id;
+	_Atomic unsigned int philo_id;
 	unsigned int forks[2];
-	unsigned int nb_meals;
+	_Atomic unsigned int nb_meals;
 	struct timeval t_last_meal;
 	t_global *global;
 	// e_philo_state state;

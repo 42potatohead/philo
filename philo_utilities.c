@@ -20,6 +20,7 @@ int init_mtx(t_philo *philos)
 		}
 	}
 	pthread_mutex_init(&philos[0].global->sim_state_mtx, NULL);
+	pthread_mutex_init(&philos[0].global->last_meal, NULL);
 	return (EXIT_SUCCESS);
 }
 void init_philos(t_philo **philos, t_global *global)
@@ -63,6 +64,8 @@ void clean_exit(t_philo *philos, int value, char *str)
 			}
 			free(philos[0].global->fork_mtx);
 		}
+		pthread_mutex_destroy(&philos[0].global->sim_state_mtx);
+		pthread_mutex_destroy(&philos[0].global->last_meal);
 		if (philos[0].global)
 			free(philos[0].global);
 		free(philos);
