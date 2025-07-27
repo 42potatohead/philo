@@ -38,7 +38,7 @@ typedef struct s_global
 
 typedef struct s_philo
 {
-	int id;
+	_Atomic int id;
 	_Atomic unsigned int philo_id;
 	unsigned int forks[2];
 	_Atomic unsigned int nb_meals;
@@ -66,5 +66,13 @@ void	ft_putstr_fd(char *s, int fd);
 int arr_isdigit(char **arr);
 void clean_exit(t_philo *philo, int value, char *str);
 long time_since(struct timeval *end);
+void	sleep_intervals(t_philo *philo, int ms);
+
+
+// /// debugging process
+// #define pthread_mutex_lock(mutex) \
+// 	printf("Locking mutex %s at %s:%d\n", #mutex, __FILE__, __LINE__), pthread_mutex_lock(mutex)
+// #define pthread_mutex_unlock(mutex) \
+// 	printf("Unlocking mutex %s at %s:%d\n", #mutex, __FILE__, __LINE__), pthread_mutex_unlock(mutex)
 
 #endif
