@@ -1,107 +1,133 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   philo.c                                            :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zabu-bak <marvin@42.fr>                    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/07/30 01:20:19 by zabu-bak          #+#    #+#             */
+/*   Updated: 2025/07/30 02:37:36 by zabu-bak         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "philo.h"
 
-int any_philo_dead(t_philo *philo)
+/*
+   Check if any philosopher is dead.
+   Returns 1 if at least one philosopher is dead, 0 otherwise.
+*/
+int	any_philo_dead(t_philo *philo)
 {
-	unsigned int i;
+	unsigned int	i;
+	long			death_time;
 
 	i = 0;
 	while (i < philo->global->nb_philo)
 	{
-		pthread_mutex_lock(&philo[i].global->last_meal);
-		if (time_since(&philo[i].t_last_meal) > philo[i].global->ttd)
+		pthread_mutex_lock(&philo[i].last_meal_mtx);
+		death_time = time_since(&philo[i].t_last_meal);
+		if (death_time > philo[i].global->ttd)
 		{
-			pthread_mutex_unlock(&philo[i].global->last_meal);
-			return 1; // At least one philosopher is dead
+			pthread_mutex_unlock(&philo[i].last_meal_mtx);
+			pthread_mutex_lock(&philo[i].global->print_mutex);
+			printf("%ld %d died\n", death_time, philo[i].id);
+			pthread_mutex_unlock(&philo[i].global->print_mutex);
+			return (1);
 		}
-		pthread_mutex_unlock(&philo[i].global->last_meal);
+		pthread_mutex_unlock(&philo[i].last_meal_mtx);
 		i++;
 	}
-	return 0; // No philosophers are dead
+	return (0);
 }
 
-int enough_eating(t_philo *philo)
+/*
+   Check if all philosophers have eaten enough meals.
+   Returns 1 if all philosophers have eaten enough, 0 otherwise.
+ */
+int	enough_eating(t_philo *philo)
 {
-	unsigned int i;
+	unsigned int	i;
 
 	i = 0;
 	while (i < philo->global->nb_philo)
 	{
+		pthread_mutex_lock(&philo[i].last_meal_mtx);
 		if (philo[i].nb_meals < philo->global->must_eat)
-			return 0; // Not all philosophers have eaten enough
+		{
+			pthread_mutex_unlock(&philo[i].last_meal_mtx);
+			return (0);
+		}
+		pthread_mutex_unlock(&philo[i].last_meal_mtx);
 		i++;
 	}
-	return 1; // All philosophers have eaten enough
+	return (1);
 }
 
-int is_dead(t_philo *philo)
+int	is_dead(t_philo *philo)
 {
 	if (any_philo_dead(philo))
 	{
 		pthread_mutex_lock(&philo->global->sim_state_mtx);
-		philo->global->sim_state = STOPPED; // Set simulation state to stopped
+		philo->global->sim_state = STOPPED;
 		pthread_mutex_unlock(&philo->global->sim_state_mtx);
-		pthread_mutex_lock(&philo->global->print_mutex);
-		printf("%ld %d is dead\n", time_since(&philo->global->t_start), philo->id);
-		pthread_mutex_unlock(&philo->global->print_mutex);
-		return 1; // Philosopher is dead
+		return (1);
 	}
 	if (enough_eating(philo))
 	{
-		return 1;
+		pthread_mutex_lock(&philo->global->sim_state_mtx);
+		philo->global->sim_state = STOPPED;
+		pthread_mutex_unlock(&philo->global->sim_state_mtx);
+		return (1);
 	}
-	return 0; // Philosopher is alive
+	return (0);
 }
 
-void simulate(t_philo *philos)
+/*
+   monitor function to check the state of philosophers.
+   usleep for a short duration to prevent busy waiting. (busy waiting is
+   when a thread continuously checks a condition without yielding the CPU)
+*/
+void	simulate(t_philo *philos)
 {
-	init_threads(philos, philos[0].global->nb_philo);
-
-	while(1)
+	init_threads(philos, philos[0].global->nb_philo); // protect 
+	while (1)
 	{
 		pthread_mutex_lock(&philos[0].global->sim_state_mtx);
 		if (philos[0].global->sim_state == STOPPED)
 		{
 			pthread_mutex_unlock(&philos[0].global->sim_state_mtx);
-			break; // Exit the loop if simulation is stopped
+			break ;
 		}
 		pthread_mutex_unlock(&philos[0].global->sim_state_mtx);
 		if (is_dead(philos))
 		{
-			pthread_mutex_lock(&philos[0].global->sim_state_mtx);
-			philos[0].global->sim_state = STOPPED;
-			pthread_mutex_unlock(&philos[0].global->sim_state_mtx);
-			break; // Exit the loop if a philosopher is dead
+			break ;
 		}
-		usleep(500); // Prevent busy waiting
+		usleep(10);
 	}
-	// clean_exit(philos, EXIT_SUCCESS, NULL);
 }
 
-int main(int ac, char **argv)
+int	main(int ac, char **argv)
 {
-	t_philo *philos;
-	t_global *global;
+	t_philo		*philos;
+	t_global	*global;
 
-	// Allocate and initialize global data first
+	if (ac < 5 || ac > 6)
+	{
+		ft_putstr_fd("wrong number of arguments\n", 2);
+		return (EXIT_FAILURE);
+	}
 	global = malloc(sizeof(t_global));
 	if (!global)
 		return (EXIT_FAILURE);
 	init_var(global);
 	if (check_args(global, ac, argv))
 		return (EXIT_FAILURE);
-
-	// Now allocate array of philosophers
-	init_philos(&philos, global);
-	init_mtx(philos);
+	if (init_philos(&philos, global) == EXIT_FAILURE)
+		return (EXIT_FAILURE);
+	if(init_mtx(philos) == EXIT_FAILURE)
+		return (EXIT_FAILURE);
 	simulate(philos);
-	// pthread_join(, NULL);
-	clean_exit(philos, EXIT_SUCCESS, NULL);
-	printf(" Philos: %d\n Time to Die: %d\n Time to Eat: %d\n Time to Sleep: %d\n", global->nb_philo, global->ttd, global->tte, global->tts);
-	// if (ac == 6)
-	// printf(" Meals to Eat %d\n", global.must_eat);
+	join_threads(philos);
+	return (clean_exit(philos, EXIT_SUCCESS, NULL));
 }
-
-// gettimeofday(&global.t_start, NULL);
-// usleep(50000 * 1000);
-// gettimeofday(&global.t_end, NULL);
-// printf("slept for %ld ms\n",((((global.t_end.tv_sec * 1000000) + global.t_end.tv_usec) - ((global.t_start.tv_sec * 1000000) + global.t_start.tv_usec)) ) / 1000 );

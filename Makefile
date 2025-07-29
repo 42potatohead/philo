@@ -1,5 +1,5 @@
 NAME = philo
-SRC = philo.c utilities.c philo_utilities.c threads.c run_sim.c short_sleep.c
+SRC = philo.c utilities.c philo_utilities.c threads.c run_sim.c short_sleep.c init_mtx.c clean.c
 
 CC = cc
 CFLAGS = -Wextra -Wall -Werror -g3

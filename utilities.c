@@ -1,6 +1,18 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   utilities.c                                        :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zabu-bak <marvin@42.fr>                    +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/07/30 01:21:02 by zabu-bak          #+#    #+#             */
+/*   Updated: 2025/07/30 01:34:44 by zabu-bak         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "philo.h"
 
-void init_var(t_global *global)
+void	init_var(t_global *global)
 {
 	global->must_eat = -1;
 	global->nb_philo = 0;
@@ -10,10 +22,10 @@ void init_var(t_global *global)
 	global->sim_state = RUNNING;
 }
 
-int arr_isdigit(char **arr)
+int	arr_isdigit(char **arr)
 {
-	int i;
-	int j;
+	int	i;
+	int	j;
 
 	i = 1;
 	while (arr[i])
@@ -21,7 +33,7 @@ int arr_isdigit(char **arr)
 		j = 0;
 		if (arr[i][j] == '+')
 			j++;
-		while(arr[i][j])
+		while (arr[i][j])
 		{
 			if (!(arr[i][j] >= '0' && arr[i][j] <= '9'))
 				return (EXIT_FAILURE);
@@ -68,4 +80,11 @@ int	ft_atoi(const char *str)
 		i++;
 	}
 	return (nb * neg);
+}
+
+void	safe_print(const char *str, t_philo *philos, long ms)
+{
+	pthread_mutex_lock(&philos[0].global->print_mutex);
+	printf("%ld %d %s\n", ms, philos->id, str);
+	pthread_mutex_unlock(&philos[0].global->print_mutex);
 }
